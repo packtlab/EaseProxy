@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proxy Profiles (UI Test)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Pular para o conteúdo</a>
+
+    <header class="app-header" role="banner">
+      <div class="brand">
+        <h1>Perfis de Proxy</h1>
+        <p class="muted" id="subtitle">Gerencie e ative perfis (modo mock).</p>
+      </div>
+
+      <div class="header-actions" aria-label="Ações principais">
+        <button id="btnNew" class="btn primary" type="button">Novo perfil</button>
+      </div>
+    </header>
+
+    <main id="main" class="app" role="main" aria-describedby="subtitle">
+      <section class="panel" aria-labelledby="activeProfileTitle">
+        <h2 id="activeProfileTitle">Perfil ativo</h2>
+        <div class="active-row">
+          <div>
+            <p class="active-name" id="activeName">Nenhum</p>
+            <p class="muted" id="activeMeta">Ative um perfil para simular o comportamento.</p>
+          </div>
+          <button id="btnDisable" class="btn" type="button" disabled>Desativar (Direto)</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="profilesTitle">
+        <div class="panel-head">
+          <h2 id="profilesTitle">Perfis</h2>
+
+          <div class="search">
+            <label class="sr-only" for="searchInput">Buscar perfis</label>
+            <input
+              id="searchInput"
+              type="search"
+              inputmode="search"
+              placeholder="Buscar por nome…"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <!-- Live region para feedback (ex.: “Perfil ativado”) -->
+        <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+        <div class="table-wrap" role="region" aria-label="Lista de perfis" tabindex="0">
+          <table class="profiles-table">
+            <thead>
+              <tr>
+                <th scope="col">Nome</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Servidor</th>
+                <th scope="col">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="profilesBody">
+              <!-- preenchido por JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <p class="muted hint">Dicas: Tab navega. Enter/Espaço aciona botões. No modal, Esc fecha.</p>
+      </section>
+    </main>
+
+    <!-- Modal (dialog) -->
+    <div id="modalBackdrop" class="backdrop hidden" aria-hidden="true" hidden></div>
+
+    <div
+      id="modal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitle"
+      aria-describedby="modalDesc"
+      hidden
+    >
+      <div class="modal-head">
+        <h2 id="modalTitle">Novo perfil</h2>
+        <button id="btnCloseModal" class="icon-btn" type="button" aria-label="Fechar">✕</button>
+      </div>
+
+      <p id="modalDesc" class="muted">Preencha os campos. Os itens com * são obrigatórios.</p>
+
+      <form id="profileForm" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="name">Nome *</label>
+            <input id="name" name="name" type="text" required maxlength="40" />
+            <p class="field-hint" id="nameHint">Ex.: “Trabalho”, “Casa”, “SOCKS Tor”.</p>
+          </div>
+
+          <div class="field">
+            <label for="type">Tipo *</label>
+            <select id="type" name="type" required aria-describedby="typeHint">
+              <option value="direct">Direto (sem proxy)</option>
+              <option value="http">HTTP</option>
+              <option value="https">HTTPS</option>
+              <option value="socks5">SOCKS5</option>
+              <option value="pac">PAC (avançado)</option>
+            </select>
+            <p class="field-hint" id="typeHint">
+              <strong>Direto</strong> desliga proxy.
+              <strong>HTTP/HTTPS/SOCKS5</strong> usa um servidor fixo.
+              <strong>PAC</strong> (avançado) usa um arquivo/script que decide automaticamente qual proxy usar por site.
+            </p>
+          </div>
+
+          <div class="field" id="hostField">
+            <label for="host">Host *</label>
+            <input id="host" name="host" type="text" autocomplete="off" />
+            <p class="field-hint">Ex.: 127.0.0.1 ou proxy.exemplo.com</p>
+          </div>
+
+          <div class="field" id="portField">
+            <label for="port">Porta *</label>
+            <input id="port" name="port" type="text" inputmode="numeric" pattern="[0-9]*" />
+            <p class="field-hint">Ex.: 8080</p>
+          </div>
+
+          <!-- PAC: só aparece quando o tipo for PAC -->
+          <div class="field wide hidden" id="pacUrlField">
+            <label for="pacValue">PAC (URL ou script) *</label>
+            <textarea
+              id="pacValue"
+              name="pacValue"
+              rows="6"
+              spellcheck="false"
+              placeholder="Cole uma URL:
+https://exemplo.com/proxy.pac
+
+OU cole um PAC script:
+function FindProxyForURL(url, host) { ... }"
+            ></textarea>
+            <p class="field-hint" id="pacHint">
+              Aceita <strong>URL</strong> (http/https) ou o <strong>conteúdo do PAC</strong> (FindProxyForURL...).
+              Use PAC quando você precisa de regras por site (ex.: intranet direto, outros via proxy).
+            </p>
+          </div>
+
+          <!-- Bypass: sempre disponível (opcional) -->
+          <div class="field wide">
+            <label for="bypass">Bypass list (opcional)</label>
+            <textarea
+              id="bypass"
+              name="bypass"
+              rows="4"
+              spellcheck="false"
+              placeholder="Ex.:
+localhost
+127.0.0.1
+*.local
+192.168.*"
+            ></textarea>
+            <p class="field-hint">
+              Lista de endereços que <strong>não devem passar pelo proxy</strong>. Útil para não quebrar
+              <strong>localhost</strong>, intranet e rede local.
+            </p>
+          </div>
+
+          <fieldset class="field wide">
+            <legend>Autenticação (opcional)</legend>
+            <div class="inline-2">
+              <div class="field">
+                <label for="username">Usuário</label>
+                <input id="username" name="username" type="text" autocomplete="username" />
+              </div>
+              <div class="field">
+                <label for="password">Senha</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" />
+              </div>
+            </div>
+            <p class="field-hint">Ainda é mock; depois vamos integrar com a API do navegador.</p>
+          </fieldset>
+        </div>
+
+        <div id="formError" class="form-error hidden" role="alert"></div>
+
+        <div class="modal-actions">
+          <button id="btnCancel" class="btn" type="button">Cancelar</button>
+          <button id="btnSave" class="btn primary" type="submit">Salvar</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
