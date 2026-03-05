@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Proxy Profiles (UI Test)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css" />
   </head>
 
@@ -15,9 +18,16 @@
         <h1>Perfis de Proxy</h1>
         <p class="muted" id="subtitle">Gerencie e ative perfis (modo mock).</p>
       </div>
-
       <div class="header-actions" aria-label="Ações principais">
-        <button id="btnNew" class="btn primary" type="button">Novo perfil</button>
+        <button class="btn theme-btn" data-theme="dark" aria-pressed="false" type="button">
+          🌙 Dark
+        </button>
+        <button class="btn theme-btn active" data-theme="light" aria-pressed="true" type="button">
+          🌞 Light
+        </button>
+        <button class="btn theme-btn" data-theme="colorblind" aria-pressed="false" type="button">
+          🟡 Colorblind
+        </button>
       </div>
     </header>
 
@@ -29,7 +39,9 @@
             <p class="active-name" id="activeName">Nenhum</p>
             <p class="muted" id="activeMeta">Ative um perfil para simular o comportamento.</p>
           </div>
-          <button id="btnDisable" class="btn" type="button" disabled>Desativar (Direto)</button>
+          <button id="btnDisable" class="btn btn-danger-outline" type="button" disabled>
+            <span class="btn-icon" aria-hidden="true">⏹</span> Desativar (Direto)
+          </button>
         </div>
       </section>
 
@@ -47,9 +59,14 @@
               autocomplete="off"
             />
           </div>
+          <div class="header-actions" aria-label="Ações principais">
+            <button id="btnNew" class="btn primary" type="button">
+              <span class="btn-icon" aria-hidden="true">＋</span> Novo perfil
+            </button>
+          </div>
         </div>
 
-        <!-- Live region para feedback (ex.: “Perfil ativado”) -->
+        <!-- Live region para feedback -->
         <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
         <div class="table-wrap" role="region" aria-label="Lista de perfis" tabindex="0">
@@ -96,7 +113,7 @@
           <div class="field">
             <label for="name">Nome *</label>
             <input id="name" name="name" type="text" required maxlength="40" />
-            <p class="field-hint" id="nameHint">Ex.: “Trabalho”, “Casa”, “SOCKS Tor”.</p>
+            <p class="field-hint" id="nameHint">Ex.: "Trabalho", "Casa", "SOCKS Tor".</p>
           </div>
 
           <div class="field">
@@ -127,7 +144,6 @@
             <p class="field-hint">Ex.: 8080</p>
           </div>
 
-          <!-- PAC: só aparece quando o tipo for PAC -->
           <div class="field wide hidden" id="pacUrlField">
             <label for="pacValue">PAC (URL ou script) *</label>
             <textarea
@@ -147,7 +163,6 @@ function FindProxyForURL(url, host) { ... }"
             </p>
           </div>
 
-          <!-- Bypass: sempre disponível (opcional) -->
           <div class="field wide">
             <label for="bypass">Bypass list (opcional)</label>
             <textarea
@@ -187,7 +202,9 @@ localhost
 
         <div class="modal-actions">
           <button id="btnCancel" class="btn" type="button">Cancelar</button>
-          <button id="btnSave" class="btn primary" type="submit">Salvar</button>
+          <button id="btnSave" class="btn success" type="submit">
+            <span class="btn-icon" aria-hidden="true">💾</span> Salvar
+          </button>
         </div>
       </form>
     </div>

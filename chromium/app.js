@@ -25,10 +25,7 @@
     host: $("host"),
     port: $("port"),
 
-    // ✅ Novo: campo único que aceita URL ou PAC script
     pacValue: $("pacValue"),
-
-    // ✅ bypass list (opcional)
     bypass: $("bypass"),
 
     username: $("username"),
@@ -95,7 +92,7 @@
       localStorage.removeItem(ACTIVE_KEY);
     }
 
-    // Segurança extra: começa sempre fechado (evita “vazar” no fim da página)
+    // Começa sempre fechado
     els.modal.classList.add("hidden");
     els.modalBackdrop.classList.add("hidden");
     els.modal.hidden = true;
@@ -113,7 +110,7 @@
     els.btnCancel.addEventListener("click", closeModal);
     els.modalBackdrop.addEventListener("click", closeModal);
 
-    // Esc to close + focus trap
+    // Esc + focus trap
     document.addEventListener("keydown", (e) => {
       if (!isModalOpen()) return;
 
@@ -148,11 +145,11 @@
         profiles = profiles.map((p) =>
           p.id === editingId ? { ...p, ...normalized, id: editingId } : p
         );
-        announce(`Perfil “${normalized.name}” atualizado.`);
+        announce(`Perfil "${normalized.name}" atualizado.`);
       } else {
         const id = uid();
         profiles = [{ id, ...normalized }, ...profiles];
-        announce(`Perfil “${normalized.name}” criado.`);
+        announce(`Perfil "${normalized.name}" criado.`);
       }
 
       saveProfiles();
@@ -192,47 +189,64 @@
     for (const p of filtered) {
       els.profilesBody.appendChild(renderRow(p));
     }
+
+    // Legenda colorblind (injetada uma vez abaixo da tabela)
+    renderColorblindLegend();
   }
 
   function renderRow(p) {
     const tr = document.createElement("tr");
 
+    // Marca a linha com classe se for o ativo (borda lateral via CSS)
+    if (p.id === activeProfileId) {
+      tr.classList.add("is-active");
+    }
+
+    // Nome + badge
     const tdName = document.createElement("td");
     tdName.innerHTML = `
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
         <strong>${escapeHtml(p.name)}</strong>
-        ${p.id === activeProfileId ? `<span class="badge" aria-label="Perfil ativo">Ativo</span>` : ""}
+        ${
+          p.id === activeProfileId
+            ? `<span class="badge" aria-label="Perfil ativo">✔ Ativo</span>`
+            : ""
+        }
       </div>
     `;
 
+    // Tipo com ícone (forma além de cor)
     const tdType = document.createElement("td");
-    tdType.textContent = typeLabel(p.type);
+    tdType.innerHTML = `<span style="font-family:'IBM Plex Mono',monospace;font-size:0.88rem;">${escapeHtml(typeLabel(p.type))}</span>`;
 
+    // Servidor
     const tdServer = document.createElement("td");
+    tdServer.style.cssText = "font-family:'IBM Plex Mono',monospace;font-size:0.85rem;word-break:break-all;";
     tdServer.textContent = serverLabel(p);
 
+    // Ações com ícones (forma + texto, não só cor)
     const tdActions = document.createElement("td");
     const actions = document.createElement("div");
     actions.className = "actions";
 
     const btnActivate = document.createElement("button");
-    btnActivate.className = "btn primary";
+    btnActivate.className = "btn success";
     btnActivate.type = "button";
-    btnActivate.textContent = "Ativar";
+    btnActivate.innerHTML = `<span class="btn-icon" aria-hidden="true">▶</span> Ativar`;
     btnActivate.setAttribute("aria-label", `Ativar perfil ${p.name}`);
     btnActivate.addEventListener("click", () => setActive(p.id));
 
     const btnEdit = document.createElement("button");
-    btnEdit.className = "btn";
+    btnEdit.className = "btn warning";
     btnEdit.type = "button";
-    btnEdit.textContent = "Editar";
+    btnEdit.innerHTML = `<span class="btn-icon" aria-hidden="true">✏</span> Editar`;
     btnEdit.setAttribute("aria-label", `Editar perfil ${p.name}`);
     btnEdit.addEventListener("click", () => openModalForEdit(p.id));
 
     const btnDelete = document.createElement("button");
-    btnDelete.className = "btn";
+    btnDelete.className = "btn danger";
     btnDelete.type = "button";
-    btnDelete.textContent = "Excluir";
+    btnDelete.innerHTML = `<span class="btn-icon" aria-hidden="true">🗑</span> Excluir`;
     btnDelete.setAttribute("aria-label", `Excluir perfil ${p.name}`);
     btnDelete.addEventListener("click", () => removeProfile(p.id));
 
@@ -241,6 +255,30 @@
 
     tr.append(tdName, tdType, tdServer, tdActions);
     return tr;
+  }
+
+  /**
+   * Injeta (ou atualiza) uma legenda visual abaixo da tabela
+   * visível apenas no tema colorblind, explicando a codificação de cores.
+   */
+  function renderColorblindLegend() {
+    const tableWrap = document.querySelector(".table-wrap");
+    if (!tableWrap) return;
+
+    let legend = document.querySelector(".colorblind-legend");
+    if (!legend) {
+      legend = document.createElement("div");
+      legend.className = "colorblind-legend";
+      legend.setAttribute("aria-label", "Legenda de cores");
+      tableWrap.insertAdjacentElement("afterend", legend);
+    }
+
+    legend.innerHTML = `
+      <span><span class="legend-dot" style="background:var(--success)"></span> Ativar / Salvar (verde)</span>
+      <span><span class="legend-dot" style="background:var(--warning)"></span> Editar (amarelo)</span>
+      <span><span class="legend-dot" style="background:var(--danger)"></span> Excluir (laranja)</span>
+      <span><span class="legend-dot" style="background:var(--badge-bg); border:1.5px solid var(--badge-border)"></span> Perfil ativo (azul)</span>
+    `;
   }
 
   function setActive(idOrNull) {
@@ -256,7 +294,7 @@
 
     activeProfileId = idOrNull;
     localStorage.setItem(ACTIVE_KEY, idOrNull);
-    announce(`Perfil “${p.name}” ativado (mock).`);
+    announce(`Perfil "${p.name}" ativado (mock).`);
     render();
   }
 
@@ -264,7 +302,7 @@
     const p = profiles.find((x) => x.id === id);
     if (!p) return;
 
-    const ok = confirm(`Excluir o perfil “${p.name}”?`);
+    const ok = confirm(`Excluir o perfil "${p.name}"?`);
     if (!ok) return;
 
     profiles = profiles.filter((x) => x.id !== id);
@@ -273,9 +311,9 @@
     if (activeProfileId === id) {
       activeProfileId = null;
       localStorage.removeItem(ACTIVE_KEY);
-      announce(`Perfil “${p.name}” excluído. Modo direto ativado.`);
+      announce(`Perfil "${p.name}" excluído. Modo direto ativado.`);
     } else {
-      announce(`Perfil “${p.name}” excluído.`);
+      announce(`Perfil "${p.name}" excluído.`);
     }
 
     render();
@@ -321,7 +359,6 @@
 
     els.modal.hidden = false;
     els.modalBackdrop.hidden = false;
-
     els.modal.classList.remove("hidden");
     els.modalBackdrop.classList.remove("hidden");
     els.modalBackdrop.setAttribute("aria-hidden", "false");
@@ -338,7 +375,6 @@
     els.modal.classList.add("hidden");
     els.modalBackdrop.classList.add("hidden");
     els.modalBackdrop.setAttribute("aria-hidden", "true");
-
     els.modal.hidden = true;
     els.modalBackdrop.hidden = true;
 
@@ -379,21 +415,14 @@
     const isPac = t === "pac";
     const needsHostPort = !isDirect && !isPac;
 
-    // Host/Port
     els.hostField.classList.toggle("hidden", !needsHostPort);
     els.portField.classList.toggle("hidden", !needsHostPort);
-
-    // PAC block (campo único)
     els.pacUrlField.classList.toggle("hidden", !isPac);
 
-    // required flags
     els.host.required = needsHostPort;
     els.port.required = needsHostPort;
-
-    // PAC value só é obrigatório se tipo=PAC
     if (els.pacValue) els.pacValue.required = isPac;
 
-    // limpar campos desnecessários (opcional, mas ajuda)
     if (isDirect) {
       els.host.value = "";
       els.port.value = "";
@@ -432,7 +461,6 @@
   function normalizeFormData(data) {
     const out = { ...data };
 
-    // bypass: normalize (trim em linhas e remove linhas vazias)
     if (typeof out.bypass === "string") {
       const normalizedLines = out.bypass
         .split(/\r?\n/)
@@ -441,7 +469,6 @@
       out.bypass = normalizedLines.join("\n");
     }
 
-    // Port: string -> number (quando aplicável)
     if (out.type !== "direct" && out.type !== "pac") {
       out.port = Number(out.port);
     } else {
@@ -449,7 +476,6 @@
       delete out.port;
     }
 
-    // PAC: dividir o campo único entre URL ou script
     if (out.type === "pac") {
       const value = (out.pacValue || "").trim();
       const kind = detectPacKind(value);
@@ -466,7 +492,6 @@
     }
 
     delete out.pacValue;
-
     return out;
   }
 
@@ -485,7 +510,6 @@
           return { ok: false, message: "A URL do PAC não parece válida." };
         }
       } else {
-        // validação leve (não é parser): só checa se parece PAC
         const looksLikePac = /FindProxyForURL\s*\(/i.test(value) || /^function\s+/i.test(value);
         if (!looksLikePac) {
           return {
@@ -495,13 +519,11 @@
           };
         }
       }
-
       return { ok: true };
     }
 
     if (data.type === "direct") return { ok: true };
 
-    // host/port
     if (!data.host) return { ok: false, message: "Informe o host do proxy." };
     if (!data.port) return { ok: false, message: "Informe a porta do proxy." };
 
@@ -557,30 +579,22 @@
 
   function typeLabel(t) {
     switch (t) {
-      case "direct":
-        return "Direto";
-      case "http":
-        return "HTTP";
-      case "https":
-        return "HTTPS";
-      case "socks5":
-        return "SOCKS5";
-      case "pac":
-        return "PAC";
-      default:
-        return t;
+      case "direct": return "Direto";
+      case "http":   return "HTTP";
+      case "https":  return "HTTPS";
+      case "socks5": return "SOCKS5";
+      case "pac":    return "PAC";
+      default:       return t;
     }
   }
 
   function serverLabel(p) {
     if (p.type === "direct") return "—";
-
     if (p.type === "pac") {
       if (p.pacUrl) return p.pacUrl;
       if (p.pacScript) return "PAC script (colado)";
       return "—";
     }
-
     const host = p.host ?? "—";
     const port = p.port ?? "—";
     return `${host}:${port}`;
@@ -593,7 +607,7 @@
         : "";
 
     if (p.type === "direct") return `Sem proxy.${bypassInfo}`;
-    if (p.type === "pac") return `PAC → ${serverLabel(p)}${bypassInfo}`;
+    if (p.type === "pac")    return `PAC → ${serverLabel(p)}${bypassInfo}`;
     return `${typeLabel(p.type)} → ${serverLabel(p)}${bypassInfo}`;
   }
 
@@ -606,3 +620,40 @@
       .replaceAll("'", "&#039;");
   }
 })();
+
+/* =========================
+   TEMAS
+========================= */
+const themeButtons = document.querySelectorAll(".theme-btn");
+
+themeButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const theme = btn.dataset.theme;
+
+    document.body.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+
+    themeButtons.forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-pressed", "false");
+    });
+
+    btn.classList.add("active");
+    btn.setAttribute("aria-pressed", "true");
+  });
+});
+
+/* Carregar tema salvo */
+const savedTheme = localStorage.getItem("theme");
+if (savedTheme) {
+  document.body.setAttribute("data-theme", savedTheme);
+  const activeBtn = document.querySelector(`[data-theme="${savedTheme}"]`);
+  if (activeBtn) {
+    themeButtons.forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-pressed", "false");
+    });
+    activeBtn.classList.add("active");
+    activeBtn.setAttribute("aria-pressed", "true");
+  }
+}
