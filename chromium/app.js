@@ -626,34 +626,40 @@
 ========================= */
 const themeButtons = document.querySelectorAll(".theme-btn");
 
-themeButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    const theme = btn.dataset.theme;
+// Live region dedicada para anunciar troca de tema
+const themeAnnouncer = document.createElement("div");
+themeAnnouncer.setAttribute("aria-live", "polite");
+themeAnnouncer.setAttribute("aria-atomic", "true");
+themeAnnouncer.className = "sr-only";
+document.body.appendChild(themeAnnouncer);
 
-    document.body.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
+const themeNames = {
+  dark: "Tema escuro ativado",
+  light: "Tema claro ativado",
+  colorblind: "Tema para daltonismo ativado"
+};
 
-    themeButtons.forEach(b => {
-      b.classList.remove("active");
-      b.setAttribute("aria-pressed", "false");
-    });
+function applyTheme(theme, announce = false) {
+  document.body.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
 
-    btn.classList.add("active");
-    btn.setAttribute("aria-pressed", "true");
+  themeButtons.forEach(b => {
+    const isActive = b.dataset.theme === theme;
+    b.classList.toggle("active", isActive);
+    b.setAttribute("aria-current", isActive ? "true" : "false");
   });
-});
 
-/* Carregar tema salvo */
-const savedTheme = localStorage.getItem("theme");
-if (savedTheme) {
-  document.body.setAttribute("data-theme", savedTheme);
-  const activeBtn = document.querySelector(`[data-theme="${savedTheme}"]`);
-  if (activeBtn) {
-    themeButtons.forEach(b => {
-      b.classList.remove("active");
-      b.setAttribute("aria-pressed", "false");
-    });
-    activeBtn.classList.add("active");
-    activeBtn.setAttribute("aria-pressed", "true");
+  if (announce) {
+    themeAnnouncer.textContent = "";
+    setTimeout(() => {
+      themeAnnouncer.textContent = themeNames[theme] || "Tema alterado";
+    }, 50);
   }
 }
+
+themeButtons.forEach(btn => {
+  btn.addEventListener("click", () => applyTheme(btn.dataset.theme, true));
+});
+
+/* Carregar tema salvo — ou aplicar light como padrão */
+applyTheme(localStorage.getItem("theme") || "light", false);
